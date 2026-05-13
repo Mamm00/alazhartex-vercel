@@ -1,0 +1,23 @@
+{
+  "name": "al-azhar-tex",
+  "version": "2.0.0",
+  "description": "Al Azhar Tex \u2014 Premium Wholesale Fabrics from Zagazig, Egypt. Static site deployed on Vercel.",
+  "private": true,
+  "scripts": {
+    "build": "echo 'Static site - no build step required'",
+    "dev": "npx serve ."
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "keywords": [
+    "static-site",
+    "vercel",
+    "fabrics",
+    "wholesale",
+    "egypt",
+    "zagazig"
+  ],
+  "author": "Al Azhar Tex",
+  "license": "MIT"
+}

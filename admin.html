@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel | Al Azhar Tex</title>
+  <meta name="robots" content="noindex, nofollow">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Cairo:wght@400;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="admin-body">
+
+  <div id="login-view" aria-hidden="false">
+    <div class="login-container">
+      <div class="login-box">
+        <h2>Admin Login</h2>
+        <p style="text-align: center; color: var(--gold-light); opacity: 0.7; margin-bottom: 2rem; font-size: 0.9rem;">Al Azhar Tex Control Panel</p>
+
+        <div id="login-error" class="login-error" role="alert"></div>
+
+        <form id="login-form">
+          <div class="admin-form-group">
+            <label style="color: var(--cream);">Username</label>
+            <input type="text" id="login-username" class="admin-input" placeholder="admin" required style="background: var(--black); color: var(--cream); border-color: var(--gold-dark);">
+          </div>
+          <div class="admin-form-group">
+            <label style="color: var(--cream);">Password</label>
+            <input type="password" id="login-password" class="admin-input" placeholder="Enter password" required style="background: var(--black); color: var(--cream); border-color: var(--gold-dark);">
+          </div>
+          <button type="submit" class="admin-btn admin-btn-primary" style="width: 100%; margin-top: 1rem;">Sign In</button>
+        </form>
+
+        <p style="text-align: center; margin-top: 1.5rem; color: var(--gold-light); opacity: 0.5; font-size: 0.8rem;">Default: admin / admin</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="dashboard-view" class="hidden" aria-hidden="true">
+    <header class="admin-header">
+      <div class="container admin-header-inner">
+        <h1>&#9733; Al Azhar Tex Admin</h1>
+        <button id="logout-btn" class="admin-btn admin-btn-outline">Logout</button>
+      </div>
+    </header>
+
+    <main class="admin-main container">
+      <div class="admin-tabs" role="tablist">
+        <button class="admin-tab active" role="tab" aria-selected="true">Change Password</button>
+        <button class="admin-tab" role="tab" aria-selected="false">Customize Logo</button>
+        <button class="admin-tab" role="tab" aria-selected="false">Hero Slider</button>
+        <button class="admin-tab" role="tab" aria-selected="false">Edit Texts</button>
+        <button class="admin-tab" role="tab" aria-selected="false">Backgrounds</button>
+        <button class="admin-tab" role="tab" aria-selected="false">Products</button>
+        <button class="admin-tab" role="tab" aria-selected="false" style="color: var(--red);">Reset All</button>
+      </div>
+
+      <div class="admin-panel active" role="tabpanel">
+        <h3>Change Admin Password</h3>
+        <p style="margin-bottom: 1.5rem; color: var(--charcoal);">Update your admin password. Choose something secure and memorable.</p>
+        <form id="password-form">
+          <div class="admin-form-group">
+            <label>Current Password</label>
+            <input type="password" id="old-password" class="admin-input" required>
+          </div>
+          <div class="admin-form-group">
+            <label>New Password</label>
+            <input type="password" id="new-password" class="admin-input" required>
+          </div>
+          <div class="admin-form-group">
+            <label>Confirm New Password</label>
+            <input type="password" id="confirm-password" class="admin-input" required>
+          </div>
+          <button type="submit" class="admin-btn admin-btn-primary">Update Password</button>
+        </form>
+      </div>
+
+      <div class="admin-panel" role="tabpanel">
+        <h3>Customize Site Logo</h3>
+        <p style="margin-bottom: 1.5rem; color: var(--charcoal);">Upload a new logo image or provide a URL. The logo will appear in the header of all pages.</p>
+        <div class="admin-form-group">
+          <label>Upload Logo Image</label>
+          <input type="file" id="logo-file" class="admin-input" accept="image/*">
+        </div>
+        <div class="admin-form-group">
+          <label>Or Enter Image URL</label>
+          <input type="text" id="logo-url" class="admin-input" placeholder="https://example.com/logo.png">
+        </div>
+        <div class="admin-preview" id="logo-preview">
+          <p style="color: var(--charcoal); opacity: 0.6;">No logo selected</p>
+        </div>
+        <button id="save-logo" class="admin-btn admin-btn-primary" style="margin-top: 1rem;">Save Logo</button>
+      </div>
+
+      <div class="admin-panel" role="tabpanel">
+        <h3>Hero Slider Management</h3>
+        <p style="margin-bottom: 1.5rem; color: var(--charcoal);">Add, edit, or remove hero slides. Each slide appears on the homepage carousel.</p>
+        <div id="slides-container"></div>
+        <button id="add-slide" class="admin-btn admin-btn-primary" style="margin-top: 1rem;">+ Add New Slide</button>
+        <button id="save-slides" class="admin-btn admin-btn-primary" style="margin-top: 1rem; margin-left: 0.5rem;">Save All Slides</button>
+      </div>
+
+      <div class="admin-panel" role="tabpanel">
+        <h3>Edit Site Texts</h3>
+        <p style="margin-bottom: 1.5rem; color: var(--charcoal);">Modify the text content that appears across all pages. Changes apply site-wide.</p>
+        <div id="texts-container"></div>
+        <button id="save-texts" class="admin-btn admin-btn-primary" style="margin-top: 1rem;">Save All Texts</button>
+      </div>
+
+      <div class="admin-panel" role="tabpanel">
+        <h3>Customize Background Images</h3>
+        <p style="margin-bottom: 1.5rem; color: var(--charcoal);">Set custom background images for different sections and pages.</p>
+        <div id="backgrounds-container"></div>
+        <button id="save-backgrounds" class="admin-btn admin-btn-primary" style="margin-top: 1rem;">Save Backgrounds</button>
+      </div>
+
+      <div class="admin-panel" role="tabpanel">
+        <h3>Edit Product Names & Descriptions</h3>
+        <p style="margin-bottom: 1.5rem; color: var(--charcoal);">Modify product card titles and descriptions for all categories.</p>
+        <div id="products-container"></div>
+        <button id="save-products" class="admin-btn admin-btn-primary" style="margin-top: 1rem;">Save All Products</button>
+      </div>
+
+      <div class="admin-panel" role="tabpanel">
+        <h3 style="color: var(--red);">Reset to Factory Defaults</h3>
+        <p style="margin-bottom: 1.5rem; color: var(--charcoal);"><strong>Warning:</strong> This will permanently delete all your customizations — logo, slides, texts, backgrounds, and product edits. This action cannot be undone.</p>
+        <div style="background: #fff3f3; border: 1px solid var(--red); padding: 1.5rem; border-radius: 4px; margin-bottom: 1.5rem;">
+          <p style="color: var(--red); font-weight: 600;">The following will be erased:</p>
+          <ul style="margin-top: 0.5rem; padding-left: 1.5rem; color: var(--charcoal);">
+            <li>Custom logo</li>
+            <li>Hero slider configuration</li>
+            <li>All edited texts</li>
+            <li>Custom background images</li>
+            <li>Product name and description changes</li>
+          </ul>
+          <p style="margin-top: 0.5rem; color: var(--charcoal);">Your admin password will <strong>NOT</strong> be reset.</p>
+        </div>
+        <button id="reset-all" class="admin-btn admin-btn-danger">Reset All Customizations</button>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/main.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
