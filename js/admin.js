@@ -1,48 +1,124 @@
 /* ═══════════════════════════════════════════════════════════════
-   AL AZHAR TEX — Admin Panel JavaScript (FIXED)
+   AL AZHAR TEX — Admin Panel JavaScript (FIXED for Vercel)
    The master weaver's chamber — where the site takes new shape
    ═══════════════════════════════════════════════════════════════ */
 
 const AUTH_KEY = 'alazhartex_auth';
 const SESSION_DURATION = 60 * 60 * 1000;
-let panelsInitialized = false;  /* FIX: Prevent duplicate init on re-login */
+let panelsInitialized = false;
+
+/* ── Storage Helper: Graceful fallback when localStorage is unavailable ── */
+const Storage = {
+  isAvailable: false,
+  memoryStore: {},
+
+  init() {
+    try {
+      const test = '__storage_test__';
+      localStorage.setItem(test, test);
+      localStorage.removeItem(test);
+      this.isAvailable = true;
+    } catch (e) {
+      this.isAvailable = false;
+      console.warn('localStorage not available (file:// protocol or private mode). Using in-memory fallback. Login will not persist across page reloads.');
+    }
+  },
+
+  get(key) {
+    if (this.isAvailable) {
+      try {
+        const data = localStorage.getItem(key);
+        return data ? JSON.parse(data) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+    return this.memoryStore[key] || null;
+  },
+
+  set(key, value) {
+    if (this.isAvailable) {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+    this.memoryStore[key] = value;
+    return true;
+  },
+
+  remove(key) {
+    if (this.isAvailable) {
+      try {
+        localStorage.removeItem(key);
+      } catch (e) {}
+    }
+    delete this.memoryStore[key];
+  }
+};
+
+Storage.init();
 
 function checkAuth() {
-  const auth = JSON.parse(localStorage.getItem(AUTH_KEY) || 'null');
+  const auth = Storage.get(AUTH_KEY);
   if (!auth || !auth.timestamp || Date.now() - auth.timestamp > SESSION_DURATION) {
-    localStorage.removeItem(AUTH_KEY);
+    Storage.remove(AUTH_KEY);
     return false;
   }
   return true;
 }
 
 function login(username, password) {
-  const storedPass = localStorage.getItem('alazhartex_password');
+  const storedPass = Storage.isAvailable ? localStorage.getItem('alazhartex_password') : Storage.memoryStore['alazhartex_password'];
   const defaultPass = 'admin';
   const validPass = storedPass || defaultPass;
 
   if (username === 'admin' && password === validPass) {
-    localStorage.setItem(AUTH_KEY, JSON.stringify({ timestamp: Date.now() }));
+    Storage.set(AUTH_KEY, { timestamp: Date.now() });
     return true;
   }
   return false;
 }
 
 function logout() {
-  localStorage.removeItem(AUTH_KEY);
-  panelsInitialized = false;  /* Reset flag so panels re-init on next login */
+  Storage.remove(AUTH_KEY);
+  panelsInitialized = false;
   showLogin();
 }
 
 function showLogin() {
-  document.getElementById('login-view').classList.remove('hidden');
-  document.getElementById('dashboard-view').classList.add('hidden');
+  const loginView = document.getElementById('login-view');
+  const dashView = document.getElementById('dashboard-view');
+  if (loginView) loginView.classList.remove('hidden');
+  if (dashView) dashView.classList.add('hidden');
+
+  // Show warning if localStorage is unavailable
+  if (!Storage.isAvailable) {
+    const errorEl = document.getElementById('login-error');
+    if (errorEl) {
+      errorEl.innerHTML = `<strong>⚠️ Warning:</strong> localStorage is not available.<br>
+        You are likely opening this file directly (file://).<br>
+        <strong>To use the admin panel:</strong> Serve this site via a local server or deploy to Vercel.<br>
+        <em>Temporary session login is available (won't persist after reload).</em>`;
+      errorEl.style.color = '#E8D5A3';
+      errorEl.style.background = 'rgba(201, 168, 76, 0.15)';
+      errorEl.style.padding = '1rem';
+      errorEl.style.borderRadius = '4px';
+      errorEl.style.marginBottom = '1rem';
+      errorEl.style.fontSize = '0.85rem';
+      errorEl.style.lineHeight = '1.6';
+    }
+  }
 }
 
 function showDashboard() {
-  document.getElementById('login-view').classList.add('hidden');
-  document.getElementById('dashboard-view').classList.remove('hidden');
-  /* FIX: Only init panels once per session */
+  const loginView = document.getElementById('login-view');
+  const dashView = document.getElementById('dashboard-view');
+  if (loginView) loginView.classList.add('hidden');
+  if (dashView) dashView.classList.remove('hidden');
+
   if (!panelsInitialized) {
     initPanels();
     panelsInitialized = true;
@@ -58,7 +134,7 @@ function initPanels() {
       tabs.forEach(t => t.classList.remove('active'));
       panels.forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
-      panels[i]?.classList.add('active');
+      if (panels[i]) panels[i].classList.add('active');
     });
   });
 
@@ -69,7 +145,8 @@ function initPanels() {
   loadBackgroundsPanel();
   loadProductsPanel();
 
-  document.getElementById('reset-all')?.addEventListener('click', handleReset);
+  const resetBtn = document.getElementById('reset-all');
+  if (resetBtn) resetBtn.addEventListener('click', handleReset);
 }
 
 function loadPasswordPanel() {
@@ -82,9 +159,10 @@ function loadPasswordPanel() {
     const newPass = document.getElementById('new-password').value;
     const confirmPass = document.getElementById('confirm-password').value;
 
-    const storedPass = localStorage.getItem('alazhartex_password') || 'admin';
+    const storedPass = Storage.isAvailable ? localStorage.getItem('alazhartex_password') : Storage.memoryStore['alazhartex_password'];
+    const validOld = storedPass || 'admin';
 
-    if (oldPass !== storedPass) {
+    if (oldPass !== validOld) {
       alert('Old password is incorrect. Like a wrong key in a lock.');
       return;
     }
@@ -99,7 +177,11 @@ function loadPasswordPanel() {
       return;
     }
 
-    localStorage.setItem('alazhartex_password', newPass);
+    if (Storage.isAvailable) {
+      localStorage.setItem('alazhartex_password', newPass);
+    } else {
+      Storage.memoryStore['alazhartex_password'] = newPass;
+    }
     alert('Password changed successfully. The chamber is resealed.');
     form.reset();
   });
@@ -113,7 +195,7 @@ function loadLogoPanel() {
 
   if (!fileInput || !preview) return;
 
-  const currentLogo = localStorage.getItem('alazhartex_logo');
+  const currentLogo = Storage.isAvailable ? localStorage.getItem('alazhartex_logo') : Storage.memoryStore['alazhartex_logo'];
   if (currentLogo) {
     preview.innerHTML = `<img src="${currentLogo}" alt="Current logo">`;
   }
@@ -136,17 +218,23 @@ function loadLogoPanel() {
   });
 
   saveBtn?.addEventListener('click', () => {
-    let logoData = null;
-
     if (fileInput.files[0]) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        localStorage.setItem('alazhartex_logo', event.target.result);
+        if (Storage.isAvailable) {
+          localStorage.setItem('alazhartex_logo', event.target.result);
+        } else {
+          Storage.memoryStore['alazhartex_logo'] = event.target.result;
+        }
         alert('Logo saved! The new face of Al Azhar Tex is set.');
       };
       reader.readAsDataURL(fileInput.files[0]);
     } else if (urlInput?.value) {
-      localStorage.setItem('alazhartex_logo', urlInput.value);
+      if (Storage.isAvailable) {
+        localStorage.setItem('alazhartex_logo', urlInput.value);
+      } else {
+        Storage.memoryStore['alazhartex_logo'] = urlInput.value;
+      }
       alert('Logo URL saved! The new face of Al Azhar Tex is set.');
     } else {
       alert('Please upload a file or enter a URL. A weaver needs thread.');
@@ -161,8 +249,8 @@ function loadSliderPanel() {
 
   if (!container) return;
 
-  const slides = JSON.parse(localStorage.getItem('alazhartex_slides')) ||
-                 window.AlAzharTex?.DEFAULTS?.slides || [];
+  const storedSlides = Storage.get('alazhartex_slides');
+  const slides = storedSlides || (window.AlAzharTex?.DEFAULTS?.slides) || [];
 
   function renderSlideInputs() {
     container.innerHTML = slides.map((slide, i) => `
@@ -234,14 +322,14 @@ function loadSliderPanel() {
       });
     });
 
-    localStorage.setItem('alazhartex_slides', JSON.stringify(newSlides));
+    Storage.set('alazhartex_slides', newSlides);
     alert('Slides saved! The showroom gates have been redrawn.');
   });
 }
 
 function loadTextsPanel() {
   const defaults = window.AlAzharTex?.DEFAULTS?.texts || {};
-  const current = JSON.parse(localStorage.getItem('alazhartex_texts')) || {};
+  const current = Storage.get('alazhartex_texts') || {};
 
   const fields = [
     { key: 'heroTitle', label: 'Hero Title', default: defaults.heroTitle },
@@ -260,7 +348,7 @@ function loadTextsPanel() {
   container.innerHTML = fields.map(f => `
     <div class="admin-form-group">
       <label>${f.label}</label>
-      <textarea class="admin-input text-field" data-key="${f.key}" rows="3" ${f.dir ? 'dir="rtl"' : ''}>${current[f.key] || f.default}</textarea>
+      <textarea class="admin-input text-field" data-key="${f.key}" rows="3" ${f.dir ? 'dir="rtl"' : ''}>${current[f.key] || f.default || ''}</textarea>
     </div>
   `).join('');
 
@@ -269,14 +357,14 @@ function loadTextsPanel() {
     container.querySelectorAll('.text-field').forEach(field => {
       texts[field.dataset.key] = field.value;
     });
-    localStorage.setItem('alazhartex_texts', JSON.stringify(texts));
+    Storage.set('alazhartex_texts', texts);
     alert('Texts saved! The story of Al Azhar Tex has been rewritten.');
   });
 }
 
 function loadBackgroundsPanel() {
   const defaults = window.AlAzharTex?.DEFAULTS?.backgrounds || {};
-  const current = JSON.parse(localStorage.getItem('alazhartex_backgrounds')) || {};
+  const current = Storage.get('alazhartex_backgrounds') || {};
 
   const fields = [
     { key: 'hero', label: 'Hero Section Background' },
@@ -315,14 +403,14 @@ function loadBackgroundsPanel() {
     container.querySelectorAll('.bg-field').forEach(field => {
       if (field.value) backgrounds[field.dataset.key] = field.value;
     });
-    localStorage.setItem('alazhartex_backgrounds', JSON.stringify(backgrounds));
+    Storage.set('alazhartex_backgrounds', backgrounds);
     alert('Backgrounds saved! The walls of our digital souq are repainted.');
   });
 }
 
 function loadProductsPanel() {
   const defaults = window.AlAzharTex?.DEFAULTS?.products || { women: [], men: [], trending: [] };
-  const current = JSON.parse(localStorage.getItem('alazhartex_products')) || defaults;
+  const current = Storage.get('alazhartex_products') || defaults;
 
   const container = document.getElementById('products-container');
   if (!container) return;
@@ -370,54 +458,58 @@ function loadProductsPanel() {
       const names = container.querySelectorAll(`.prod-name[data-cat="${cat}"]`);
       names.forEach((nameEl, idx) => {
         const parent = nameEl.closest('div[style*="border"]');
-        products[cat].push({
-          name: nameEl.value,
-          nameAr: parent.querySelector('.prod-name-ar').value,
-          desc: parent.querySelector('.prod-desc').value,
-          image: parent.querySelector('.prod-image').value
-        });
+        if (parent) {
+          products[cat].push({
+            name: nameEl.value,
+            nameAr: parent.querySelector('.prod-name-ar').value,
+            desc: parent.querySelector('.prod-desc').value,
+            image: parent.querySelector('.prod-image').value
+          });
+        }
       });
     });
 
-    localStorage.setItem('alazhartex_products', JSON.stringify(products));
+    Storage.set('alazhartex_products', products);
     alert('Products saved! The catalog has been rewritten.');
   });
 }
 
 function handleReset() {
   const confirmed = confirm(
-    'Are you sure you want to reset ALL customizations?
-
-' +
-    'This will erase all your changes and restore the factory defaults.
-' +
+    'Are you sure you want to reset ALL customizations?\n' +
+    'This will erase all your changes and restore the factory defaults.\n' +
     'This action cannot be undone.'
   );
 
   if (!confirmed) return;
 
   const doubleCheck = confirm(
-    'FINAL WARNING: All customizations will be permanently deleted.
-' +
-    'Logo, slides, texts, backgrounds, and product edits will be lost.
-
-' +
+    'FINAL WARNING: All customizations will be permanently deleted.\n' +
+    'Logo, slides, texts, backgrounds, and product edits will be lost.\n\n' +
     'Click OK to proceed with reset.'
   );
 
   if (!doubleCheck) return;
 
-  Object.keys(localStorage).forEach(key => {
-    if (key.startsWith('alazhartex_') && key !== 'alazhartex_password' && key !== AUTH_KEY) {
-      localStorage.removeItem(key);
-    }
-  });
+  if (Storage.isAvailable) {
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('alazhartex_') && key !== 'alazhartex_password' && key !== AUTH_KEY) {
+        localStorage.removeItem(key);
+      }
+    });
+  } else {
+    Object.keys(Storage.memoryStore).forEach(key => {
+      if (key.startsWith('alazhartex_') && key !== 'alazhartex_password' && key !== AUTH_KEY) {
+        delete Storage.memoryStore[key];
+      }
+    });
+  }
 
-  alert('All customizations have been reset to factory defaults.
-The loom has been cleared for a new tapestry.');
+  alert('All customizations have been reset to factory defaults.\nThe loom has been cleared for a new tapestry.');
   window.location.reload();
 }
 
+/* ── DOM Ready: The loom begins to weave ── */
 document.addEventListener('DOMContentLoaded', () => {
   if (checkAuth()) {
     showDashboard();
@@ -425,18 +517,28 @@ document.addEventListener('DOMContentLoaded', () => {
     showLogin();
   }
 
-  document.getElementById('login-form')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const username = document.getElementById('login-username').value;
-    const password = document.getElementById('login-password').value;
-    const errorEl = document.getElementById('login-error');
+  const loginForm = document.getElementById('login-form');
+  if (loginForm) {
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = document.getElementById('login-username').value;
+      const password = document.getElementById('login-password').value;
+      const errorEl = document.getElementById('login-error');
 
-    if (login(username, password)) {
-      showDashboard();
-    } else {
-      errorEl.textContent = 'Invalid username or password. The key does not fit the lock.';
-    }
-  });
+      if (login(username, password)) {
+        showDashboard();
+        if (errorEl) errorEl.textContent = '';
+      } else {
+        if (errorEl) {
+          errorEl.textContent = 'Invalid username or password. The key does not fit the lock.';
+          errorEl.style.color = '#B22222';
+        }
+      }
+    });
+  }
 
-  document.getElementById('logout-btn')?.addEventListener('click', logout);
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', logout);
+  }
 });
